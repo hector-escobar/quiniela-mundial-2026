@@ -76,12 +76,36 @@ if not df_p.empty and not df_m.empty and not df_pred.empty:
     menu = st.sidebar.radio("Ir a:", ["Ranking", "Mis Predicciones"])
 
     if menu == "Ranking":
-        st.header("📊 Tabla de Posiciones")
-        # Sumar puntos por usuario y unir con nombres de jugadores
+        st.header("📊 Tabla General de Posiciones")
+        
+        # 1. Preparar el Ranking (Igual que antes)
         rank = full.groupby('user_id')['puntos'].sum().reset_index()
         rank = rank.merge(df_p, on='user_id').sort_values('puntos', ascending=False)
+
+        # --- NUEVA SECCIÓN: TOP 3 KPIs (Encima de la tabla) ---
+        st.subheader("🏆 Cuadro de Honor")
+        col1, col2, col3 = st.columns(3)
+
+        # Extraer los 3 mejores con validación por si hay pocos jugadores
+        if len(rank) >= 1:
+            col1.metric(label="🥇 1er Lugar", value=rank.iloc[0]['username'], delta=f"{rank.iloc[0]['puntos']} pts")
         
-        st.dataframe(rank[['username', 'puntos', 'country']], width=True, hide_index=True)
+        if len(rank) >= 2:
+            col2.metric(label="🥈 2do Lugar", value=rank.iloc[1]['username'], delta=f"{rank.iloc[1]['puntos']} pts")
+        
+        if len(rank) >= 3:
+            col3.metric(label="🥉 3er Lugar", value=rank.iloc[2]['username'], delta=f"{rank.iloc[2]['puntos']} pts")
+        
+        st.divider() # Línea estética para separar el Top 3 de la tabla
+        # -----------------------------------------------------
+
+        # --- TU TABLA ANTIGUA (Se mantiene intacta abajo) ---
+        st.write("### Clasificación Completa")
+        st.dataframe(
+            rank[['username', 'puntos', 'country']], 
+            use_container_width=True, 
+            hide_index=True
+        )
 
     elif menu == "Mis Predicciones":
         user = st.selectbox("Selecciona tu nombre:", df_p['username'].unique())
@@ -89,6 +113,10 @@ if not df_p.empty and not df_m.empty and not df_pred.empty:
         user_data = full[full['user_id'] == uid]
         
         st.metric("Tu Puntaje Total", user_data['puntos'].sum())
+        st.table(user_data[['match', 'predicted_home', 'predicted_away', 'real_home', 'real_away', 'puntos']])
+
+else:
+    st.warning("No se detectaron datos. Revisa la consola o el archivo 'secretos.json'.")
         st.table(user_data[['match', 'predicted_home', 'predicted_away', 'real_home', 'real_away', 'puntos']])
 
 else:
